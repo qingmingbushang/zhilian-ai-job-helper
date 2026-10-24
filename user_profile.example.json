@@ -1,0 +1,78 @@
+{
+    "_comment_session_name": "WebBridge 会话名。可选值: zl-main(默认)/其他自定义名。改成别的会导致附加不到浏览器里的智联标签页，一般不要动。",
+    "session_name": "zl-main",
+    "_comment_target_city": "目标城市中文名，仅用于日志显示。可选值: 任意城市名，但必须和 city_code 对应同一个城市。",
+    "target_city": "杭州",
+    "_comment_city_code": "智联城市编码，只能填数字字符串(如 854=西安, 530=杭州, 531=上海)。填错城市名或非数字会导致导航到不存在的列表页。查编码: 打开 zhaopin.com 切城市看 URL 里的 jl= 值。",
+    "city_code": "530",
+    "_comment_search_keyword": "默认搜索关键词，拼进列表页 URL 的 kw= 参数。可选值: 任意职位关键词。改了它只影响默认搜索词，用 --url 或 --kw 传参时会被覆盖。",
+    "search_keyword": "软件工程师",
+    "_comment_min_salary_k": "底薪下限，单位 K(千元/月)，数字类型。可选值: 0 或正数。低于此值的岗位在上层筛选时被过滤；0 表示不限制。注意是月薪上限口径之外的独立下限，看的是 salary_max_k 还是起薪由判断逻辑决定。",
+    "min_salary_k": 6,
+    "_comment_daily_wage_policy": "日薪/时薪/周薪岗(如 '300元/天')的处理策略。可选值: reject(视为不达标直接 REJECT，日薪折算月薪通常低于底薪且口径不可比)/skip(沿用旧行为，日薪无法折算则跳过底薪检查，会漏进 APPROVE)。当前选择 reject。",
+    "daily_wage_policy": "reject",
+    "_comment_job_directions": "求职方向列表，用于匹配 JD 标题/正文的语义方向。可选值: 任意方向短语，多个并存。命中任意一个都算方向对口。",
+    "job_directions": [
+        "嵌入式软件",
+        "单片机开发",
+        "驱动开发",
+        "固件工程师"
+    ],
+    "_comment_must_have_keywords": "必备关键词，JD 标题或正文命中至少 1 个才视为对口岗位(正向锚点)。可选值: 任意技术词。注意 C++ 单独成词，JD 写 C/C++ 也能命中。",
+    "must_have_keywords": [
+        "C语言",
+        "C++",
+        "单片机",
+        "MCU",
+        "STM32",
+        "嵌入式",
+        "驱动",
+        "固件",
+        "RTOS",
+        "Keil",
+        "ARM"
+    ],
+    "_comment_reject_keywords": "排除关键词，命中说明岗位大概率不对口(如纯前端/测试/销售)。可选值: 任意词。命中后的处理方式由 reject_strict 和 reject_keyword_weight 决定，不是直接扔掉。",
+    "reject_keywords": [
+        "纯前端",
+        "前端开发",
+        "Java后端",
+        "Java开发",
+        "测试工程师",
+        "软件测试",
+        "销售",
+        "客服",
+        "教培",
+        "课程顾问"
+    ],
+    "_comment_reject_strict": "是否硬拒。可选值: true(reject 词命中直接 REJECT)/false(只降权，当前选择)。false 的原因是 C++ 泛岗可能同时带前端词，硬拒会错杀想投的 C++ 后端岗。",
+    "reject_strict": false,
+    "_comment_reject_keyword_weight": "【已被下面两个字段取代，仅作旧版兼容保留】统一降权力度。可选值: light/medium/heavy。上层代码只在 reject_title_weight 缺失时才拿它兜底。",
+    "reject_keyword_weight": "heavy",
+    "_comment_reject_title_weight": "排除词在【标题】命中时的降权力度。可选值: light(-25)/medium(-40)/heavy(-55)。标题命中说明岗位主体就是排除方向，默认 heavy。",
+    "reject_title_weight": "heavy",
+    "_comment_reject_body_weight": "排除词在【正文】命中时的降权力度。可选值: light(-25)/medium(-40)/heavy(-55)。正文顺带提到(如'配合销售部门'、'参与软件测试')不应打死对口岗，默认 light。设成 heavy 会回到旧行为。",
+    "reject_body_weight": "light",
+    "_comment_min_degree": "学历下限。可选值: 大专/本科/硕士/博士/不限。低于此学历要求的岗位跳过(用于过滤硕士及以上专属岗)。",
+    "min_degree": "本科",
+    "_comment_acceptable_degrees": "可接受的学历要求白名单，JD 标注这些学历要求的岗位可以投。可选值: 本科/学历不限/大专。白名单之外(如硕士及以上)被 min_degree 逻辑排除。",
+    "acceptable_degrees": [
+        "本科",
+        "学历不限"
+    ],
+    "_comment_downgrade_company_patterns": "公司名命中这些模式时【真的扣分】降权不排除(-20，外包/人力/代招公司)。可选值: 任意公司名片段。注意: 下面 supplier_company_patterns 里的词如果将来决定降权，把它们挪进这个数组即可生效。",
+    "downgrade_company_patterns": [
+        "人力资源",
+        "人才服务",
+        "劳务",
+        "外包"
+    ],
+    "_comment_supplier_company_patterns": "【仅分组排序用，不扣分】人力供应商/外包公司名单，清单生成时单独归为一组。可选值: 任意公司名片段。当前状态: 软通/中软国际/德科/联创优聘/润和 只做清单分组，等用户拍板后决定是否挪进 downgrade_company_patterns 真正扣分。",
+    "supplier_company_patterns": [
+        "软通",
+        "中软国际",
+        "德科",
+        "联创优聘",
+        "润和"
+    ]
+}

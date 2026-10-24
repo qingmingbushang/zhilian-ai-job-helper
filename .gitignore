@@ -1,0 +1,26 @@
+# ═══ 用户配置（含个人求职偏好，不上传；示例见 user_profile.example.json）═══
+user_profile.json
+user_profile.json.bak*
+
+# ═══ 运行产物：缓存 / 状态 / 判定结果 / 投递台账与报告 ═══
+zl_surface_cache*.json
+zl_batch_state*.json
+zl_judge_*.json
+zl_deliver_log.json
+zl_precheck_candidates*.json
+zl_deliver_result*.md
+zl_approve_*.md
+
+# ═══ 调试产物 ═══
+probe_report.txt
+
+# ═══ 备份文件 ═══
+*.bak*
+
+# ═══ Python ═══
+__pycache__/
+*.pyc
+
+# ═══ 环境与本地工具目录 ═══
+.env
+.workbuddy/
