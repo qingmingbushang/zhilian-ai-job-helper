@@ -9,7 +9,10 @@ zl_judge_*.json
 zl_deliver_log.json
 zl_precheck_candidates*.json
 zl_deliver_result*.md
+zl_deliver_report*.md
 zl_approve_*.md
+# 采集/池子/断点等 zl_ 前缀的 json 全是运行数据（配置示例除外，见 user_profile.example.json）
+zl_*.json
 
 # ═══ 调试产物 ═══
 probe_report.txt

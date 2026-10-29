@@ -11,6 +11,7 @@ v1（与 v4 预检同源的安全垫）:
 import json
 import os
 import random
+import re
 import sys
 import time
 from urllib.parse import unquote
@@ -22,6 +23,47 @@ from scripts.zl_precheck_batch import _norm, _load_full_list, _SNAPSHOT_JS, EXPE
 
 HERE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 CAND_FILE = os.path.join(HERE, "zl_precheck_candidates.json")
+
+
+def _load_full_list_robust():
+    """后台标签页下 zl_precheck_batch._load_full_list 只认 scroll_job_list，
+    实测会停在 20 张（智联 hidden 时不响应），这里改用 zl_judge_drive 的
+    长等待滚表逻辑，返回 (keymap, 卡片数)。"""
+    from scripts.zl_judge_drive import load_all_cards
+    keymap, n = load_all_cards()
+    print(f"[加载] 滚完整表: {n} 张卡，可匹配唯一键 {len(keymap)} 组")
+    return keymap, n
+
+
+def _search_pos(title, company, used):
+    """按「公司名」在页面内搜索，把目标岗位翻出来，返回它在当前 DOM 的序号。
+
+    为什么用公司名而不是职位标题：长标题（带括号/编号）搜索常常无结果或
+    结果不含目标，会空转几分钟。公司名唯一性高、命中稳定，搜完后在结果里
+    再按 (标题,公司) 双键定位。真实性仍由调用方 precheck 的 jobId 终验兜底。
+    """
+    from scripts.zhaopin_client import navigate
+    from scripts.profile_loader import build_url
+    kw = (company or title)[:14]
+    keywords = [kw]
+    # 标题里的主干词（去掉括号后缀/编号）作为第二候选
+    stem = re.split(r"[（(【/_—-]", title)[0].strip()
+    if stem and stem != kw and len(stem) >= 4:
+        keywords.append(stem)
+    for k in keywords:
+        print(f"  [定位] 搜索兜底: {k}")
+        navigate(build_url(kw=k), wait_range=(6, 9))
+        time.sleep(3.5)
+        raw = evaluate(_SNAPSHOT_JS) or "{}"
+        try:
+            cards = json.loads(raw).get("cards") or []
+        except (json.JSONDecodeError, TypeError):
+            cards = []
+        want = (_norm(title), _norm(company))
+        for i, c in enumerate(cards):
+            if (_norm(c.get("title")), _norm(c.get("company"))) == want and i not in used:
+                return i
+    return -1
 
 
 def main():
@@ -49,7 +91,7 @@ def main():
             sys.exit(1)
     print(f"[守卫] 页面关键词校验通过")
 
-    _load_full_list()
+    _load_full_list_robust()
     raw = evaluate(_SNAPSHOT_JS) or "{}"
     try:
         snap = json.loads(raw)
@@ -66,11 +108,21 @@ def main():
                 return i
         return -1
 
+    def _locate(title, company):
+        """优先用已滚完的快照；快照里没有就按关键词直接搜一次（深层岗位常被回收）"""
+        pos = _find_pos(title, company)
+        if pos >= 0:
+            return pos
+        return _search_pos(title, company, used)
+
     results = []
     for cand in cands:
         tag = f"缓存{cand.get('cache_idx', '?')} {cand.get('expect_title', cand.get('title', ''))[:22]}"
         pos = _find_pos(cand.get("expect_title") or cand.get("title", ""),
                         cand.get("expect_company") or cand.get("company", ""))
+        if pos < 0:
+            pos = _locate(cand.get("expect_title") or cand.get("title", ""),
+                          cand.get("expect_company") or cand.get("company", ""))
         if pos < 0:
             print(f"[{tag}] 未在当前列表匹配到位置 → skip")
             results.append({"tag": tag, "status": "skip",

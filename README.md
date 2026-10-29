@@ -12,6 +12,7 @@
 - **投递预检（只读）**：`zl_deliver.py precheck` 点卡读 JD、扫描投递按钮状态、复检经验年限，不点任何投递按钮
 - **投递执行（双重确认）**：`deliver` 必须显式 `--yes`，且每条投递前做实时按钮复检（闸门 2）；异常一律跳过不硬点
 - **批量预检/投递**：`zl_precheck_batch.py` / `zl_deliver_batch.py` 按（标题+公司）双键匹配 DOM 位置 + 面板真实 jobId 终验，杜绝错位投递
+- **流水线投递（推荐）**：`zl_stream_deliver.py` 按 DOM 顺序逐张点开 —— 读面板 → 判断 → 合规当场投，不预扫全表；决策只依据面板实时内容，列表重排也不影响正确性，且复用面板数据免去二次读取（单条约 10-12s）
 
 ## 安全机制
 
@@ -37,9 +38,14 @@
 │   ├── zl_judge.py            # 规则语义判定（支持断点续跑）
 │   ├── zl_deliver.py          # 投递预检（只读）/ 投递执行（需确认）
 │   ├── zl_precheck_batch.py   # 批量预检（双键匹配 + jobId 终验）
-│   └── zl_deliver_batch.py    # 批量投递（投前逐条终验）
+│   ├── zl_deliver_batch.py    # 批量投递（投前逐条终验）
+│   ├── zl_stream_deliver.py   # 流水线投递（读一条 → 判断 → 合规即投）
+│   ├── zl_judge_drive.py      # 判定的批量驱动（长等待滚表 + 断点续跑）
+│   ├── zl_prescreen.py        # 候选粗筛（离线过滤，免点卡）
+│   └── zl_collect_all.py      # 多关键词采集
 └── tests/
     ├── selftest.py            # 判定逻辑离线用例
+    ├── test_stream.py         # 流水线投递分支路由用例
     ├── domtest.js             # DOM 解析离线用例（jsdom）
     └── _js_dump/              # domtest 用的 JS 片段夹具
 ```
@@ -59,6 +65,12 @@
    python scripts/zl_deliver.py --precheck idx91 idx13        # 只读预检
    python scripts/zl_precheck_batch.py 10 80                  # 批量预检凑 10 条干净候选
    python scripts/zl_deliver.py --deliver idx91 --yes         # 单条投递（须显式 --yes）
+   ```
+6. **流水线投递（推荐日常使用）**：
+   ```bash
+   python scripts/zl_stream_deliver.py --max-scan 60 --target 5 --dry-run   # 只判断（演练）
+   python scripts/zl_stream_deliver.py --max-scan 60 --target 5 --yes       # 真投
+   python scripts/zl_stream_deliver.py --resume --yes                       # 断点续扫
    ```
 
 ## 配置说明

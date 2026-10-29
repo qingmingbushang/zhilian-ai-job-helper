@@ -245,7 +245,7 @@ def _log(entry):
     _save_log(log)
 
 
-def deliver(idx_str, confirm=False):
+def deliver(idx_str, confirm=False, preloaded=None):
     """真投递。confirm 必须显式为 True（会话中用户逐条确认后由调用方传入）。
 
     流程（闸门 2 = 点击前的实时状态复检）:
@@ -262,10 +262,17 @@ def deliver(idx_str, confirm=False):
     entry = {"ts": time.strftime("%Y-%m-%d %H:%M:%S"), "action": "deliver", "idx": idx_str}
 
     # 1) 定位卡片 + 切面板（失败/异常 → skip）
-    try:
-        r = read_jd_for_job(idx_str)
-    except Exception as e:
-        r = {"ok": False, "detail": f"读卡异常: {e}"}
+    #    preloaded: 调用方（流水线模式）刚读过同一张卡的面板，复用可省一次点击+渲染等待，
+    #    数据来源仍是面板本身，不降低校验强度。
+    if preloaded:
+        r = {"ok": True, "jd": preloaded.get("jd") or {},
+             "job_id_real": preloaded.get("jobId") or ""}
+        entry["panel_reused"] = True
+    else:
+        try:
+            r = read_jd_for_job(idx_str)
+        except Exception as e:
+            r = {"ok": False, "detail": f"读卡异常: {e}"}
     if not r.get("ok"):
         entry.update(ok=False, status="skip", detail=f"定位卡片失败: {r.get('detail')}")
         _log(entry)
