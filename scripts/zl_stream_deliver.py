@@ -58,19 +58,22 @@ def _attach():
     return bool(r.get("ok"))
 
 
-def _guard():
-    """页面守卫: URL 解码后必须含目标关键词，否则导回列表页。"""
+def _guard(expect_kw=None):
+    """页面守卫: URL 解码后必须含目标关键词，否则**停下退出**。
+
+    为什么不自动导回 build_url(): 导航会重载列表页，把用户手动设置的
+    薪资等筛选条件全部洗掉（那些参数只活在页面 URL/前端状态里，
+    build_url() 只带城市+关键词）。守卫的职责是防错页（如曾经的
+    "前端"页事故），发现不一致应该交给人处理，而不是自作主张重载。
+    """
+    kw = expect_kw or SEARCH_KEYWORD
     url = evaluate("window.location.href") or ""
-    if SEARCH_KEYWORD in unquote(url):
+    if kw in unquote(url):
         return True
-    print(f"[守卫] 当前页不含 '{SEARCH_KEYWORD}'，导回列表页: {unquote(url)[:100]}")
-    navigate(build_url(), wait_range=(6, 8))
-    time.sleep(2)
-    url = evaluate("window.location.href") or ""
-    ok = SEARCH_KEYWORD in unquote(url)
-    if not ok:
-        print("[守卫] 导航后仍未回到目标关键词页，退出（不硬跑）")
-    return ok
+    print(f"[守卫] 当前页面不含关键词 '{kw}'，不自动导航（避免洗掉你手动设置的筛选）:")
+    print(f"       {unquote(url)[:110]}")
+    print("       请自己在浏览器切到正确的关键词列表页后重跑，或用 --kw 临时换词")
+    return False
 
 
 def _card_count():
@@ -127,11 +130,11 @@ def _seniority_hits(jd):
 
 # ────────────────────────── 主流程 ──────────────────────────
 def run(start=0, max_scan=60, target=5, min_score=95,
-        dry_run=False, seniority_block=True):
+        dry_run=False, seniority_block=True, expect_kw=None):
     if not _attach():
         print("错误: 附加不到智联标签页。请先在浏览器打开智联列表页")
         return 2
-    if not _guard():
+    if not _guard(expect_kw):
         return 2
 
     done_today = _delivered_today()
@@ -300,6 +303,9 @@ def main():
     p.add_argument("--dry-run", action="store_true", help="只判断不投递")
     p.add_argument("--yes", action="store_true", help="确认执行投递（不加则强制 dry-run）")
     p.add_argument("--no-seniority-block", action="store_true", help="不因经验年限拦截")
+    p.add_argument("--kw", default=None,
+                   help="守卫用的期望关键词（默认读 profile 的 search_keyword）；"
+                        "你在页面上手动搜了别的词时用它对齐，不会动你的筛选")
     a = p.parse_args()
 
     start = a.start
@@ -319,7 +325,7 @@ def main():
 
     return run(start=start, max_scan=a.max_scan, target=a.target,
                min_score=a.min_score, dry_run=dry,
-               seniority_block=not a.no_seniority_block)
+               seniority_block=not a.no_seniority_block, expect_kw=a.kw)
 
 
 if __name__ == "__main__":
