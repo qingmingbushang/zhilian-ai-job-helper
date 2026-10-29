@@ -48,7 +48,7 @@ _BTN_JS = r"""
 
 # 日投递上限（软保护）：当日成功投递条数达到上限后拒绝继续投。
 # 统计口径 = zl_deliver_log.json 里今日 action=deliver 且 status=success 的条数。
-DAILY_DELIVER_LIMIT = 20
+DAILY_DELIVER_LIMIT = USER_PROFILE.get("daily_deliver_limit", 80)
 
 # 验证码/风控弹窗探测：只查弹窗与验证类节点文本，
 # 不扫 body 全文（JD 正文里出现"验证码"字样会误报）
